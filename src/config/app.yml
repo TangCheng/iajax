@@ -1,0 +1,8 @@
+token: iajax_token
+connect:
+  iconfig: tcp://127.0.0.1:65400
+subscribe:
+  iconfig_pub: tcp://127.0.0.1:65401
+ajax:
+  address: 0.0.0.0
+  port: 65420
