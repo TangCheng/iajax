@@ -119,7 +119,7 @@ START_HANDLER(put_base_info, HTTP_PUT, "/api/1.0/base_info.json", http_request, 
         JsonNode *root_node;
         if (json_parser_load_from_data(parser, body, -1, NULL))
         {
-            root_node = json_parser_get_root(parser);
+            root_node = json_node_copy(json_parser_get_root(parser));
 
             do_put_action(iajax, root_node, http_response, socket);
         }
