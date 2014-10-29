@@ -2,24 +2,22 @@
 #include <string.h>
 #include "http_proc.h"
 #include "http_handler/request_handler.h"
+#include "http_handler/configuration/misc_handler.h"
 #include "http_handler/configuration/base_info_handler.h"
-#if 0
-#include "http_osd_handler.h"
-#include "http_video_handler.h"
-#include "http_image_handler.h"
-#include "http_network_handler.h"
-#include "http_datetime_handler.h"
-#include "http_users_handler.h"
-#include "http_misc_handler.h"
-#include "http_privacy_block_handler.h"
-#include "http_day_night_mode_handler.h"
-#include "http_szyc_handler.h"
-#include "http_event_input_handler.h"
-#include "http_event_output_handler.h"
-#include "http_event_motion_handler.h"
-#include "http_event_cover_handler.h"
-#include "http_event_proc_handler.h"
-#endif
+#include "http_handler/configuration/users_handler.h"
+#include "http_handler/configuration/datetime_handler.h"
+#include "http_handler/configuration/video_handler.h"
+#include "http_handler/configuration/image_handler.h"
+#include "http_handler/configuration/privacy_block_handler.h"
+#include "http_handler/configuration/day_night_mode_handler.h"
+#include "http_handler/configuration/osd_handler.h"
+#include "http_handler/configuration/szyc_handler.h"
+#include "http_handler/configuration/network_handler.h"
+#include "http_handler/configuration/event_input_handler.h"
+#include "http_handler/configuration/event_output_handler.h"
+#include "http_handler/configuration/event_motion_handler.h"
+#include "http_handler/configuration/event_cover_handler.h"
+#include "http_handler/configuration/event_proc_handler.h"
 #include "iajax.h"
 #include "common.h"
 
@@ -62,8 +60,6 @@ static void ipcam_http_proc_init(IpcamHttpProc *self)
 
     GType http_handler_type[] =
     {
-        IPCAM_HTTP_BASE_INFO_HANDLER_TYPE
-#if 0
         IPCAM_HTTP_MISC_HANDLER_TYPE,
         IPCAM_HTTP_BASE_INFO_HANDLER_TYPE,
         IPCAM_HTTP_USERS_HANDLER_TYPE,
@@ -80,7 +76,6 @@ static void ipcam_http_proc_init(IpcamHttpProc *self)
         IPCAM_HTTP_EVENT_MOTION_HANDLER_TYPE,
         IPCAM_HTTP_EVENT_COVER_HANDLER_TYPE,
         IPCAM_HTTP_EVENT_PROC_HANDLER_TYPE
-#endif
     };
     gint i = 0;
 

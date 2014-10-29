@@ -7,6 +7,7 @@
 #include "common.h"
 
 #define PROPERTY_PATH_MAX_DEPTH  5
+#define CONNECTION_TIMEOUT       10 /* seconds */
 
 typedef struct _IpcamIAjaxPrivate
 {
@@ -64,6 +65,8 @@ static void ipcam_iajax_query_event_motion(IpcamIAjax *iajax);
 static void ipcam_iajax_query_event_cover(IpcamIAjax *iajax);
 static void ipcam_iajax_query_event_proc(IpcamIAjax *iajax);
 
+static void ipcam_iajax_connection_clear(GObject *obj);
+
 static void property_value_destroy_func(gpointer value)
 {
 	g_variant_unref(value);
@@ -78,7 +81,7 @@ static void users_value_destroy_func(gpointer value)
     g_free(user);
 }
 
-static void connectiont_value_destroy_func(gpointer value)
+static void connection_value_destroy_func(gpointer value)
 {
     CONNECTION *conn = (CONNECTION *)value;
     if (conn->socket && conn->response)
@@ -130,12 +133,12 @@ static void ipcam_iajax_init(IpcamIAjax *self)
 	                                                   property_value_destroy_func);
     priv->cached_users_hash = g_hash_table_new_full(g_str_hash,
                                                     g_str_equal,
-                                                    NULL,
+                                                    g_free,
                                                     users_value_destroy_func);
     priv->connection_hash = g_hash_table_new_full(g_str_hash,
                                                   g_str_equal,
                                                   g_free,
-                                                  connectiont_value_destroy_func);
+                                                  connection_value_destroy_func);
 }
 
 static void ipcam_iajax_class_init(IpcamIAjaxClass *klass)
@@ -158,6 +161,8 @@ static void ipcam_iajax_before_start(IpcamBaseService *base_service)
     ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "set_misc", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
     ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "set_base_info", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
     ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "set_users", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
+    ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "add_users", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
+    ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "del_users", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
     ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "set_datetime", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
     ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "set_video", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
     ipcam_base_app_register_notice_handler(IPCAM_BASE_APP(iajax), "set_image", IPCAM_TYPE_IAJAX_EVENT_HANDLER);
@@ -198,6 +203,8 @@ static void ipcam_iajax_before_start(IpcamBaseService *base_service)
                                   NULL);
     }
 
+    ipcam_base_app_add_timer(IPCAM_BASE_APP(iajax), "connection_clear", "1",
+                             ipcam_iajax_connection_clear);
 }
 
 static void ipcam_iajax_in_loop(IpcamBaseService *base_service)
@@ -237,7 +244,6 @@ static void ipcam_iajax_proc_property_value(IpcamIAjax *iajax, const gchar *name
     path = g_strjoinv(":", priv->property_path);
     asprintf(&key, "%s:%s", path, name);
     g_free(path);
-        
     switch (json_node_get_value_type(node))
     {
     case G_TYPE_STRING:
@@ -305,25 +311,26 @@ static void property_array_proc(JsonArray *array,
     IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
 
     JsonObject *user_obj = json_node_get_object(element_node);
-    USER *user = g_new(USER, 1);
-    
-    user->name = g_strdup(json_object_get_string_member(user_obj, "username"));
-    if (g_str_has_prefix(priv->property_path[0], "del_"))
-    {
-        g_mutex_lock(&priv->users_mutex);
-        g_hash_table_remove(priv->cached_users_hash, user->name);
-        g_mutex_unlock(&priv->users_mutex);
-        g_free(user->name);
-        g_free(user);
-    }
-    else
-    {
-        user->pwd = g_strdup(json_object_get_string_member(user_obj, "password"));
-        user->role = g_strdup(json_object_get_string_member(user_obj, "role"));
-
-        g_mutex_lock(&priv->users_mutex);
-        g_hash_table_insert(priv->cached_users_hash, user->name, user);
-        g_mutex_unlock(&priv->users_mutex);
+    if (user_obj)
+    {   
+        USER *user = g_new(USER, 1);
+        user->name = g_strdup(json_object_get_string_member(user_obj, "username"));
+        if (g_str_has_prefix(priv->property_path[0], "del_"))
+        {
+            g_mutex_lock(&priv->users_mutex);
+            g_hash_table_remove(priv->cached_users_hash, user->name);
+            g_mutex_unlock(&priv->users_mutex);
+            g_free(user->name);
+            g_free(user);
+        }
+        else
+        {
+            user->pwd = g_strdup(json_object_get_string_member(user_obj, "password"));
+            user->role = g_strdup(json_object_get_string_member(user_obj, "role"));
+            g_mutex_lock(&priv->users_mutex);
+            g_hash_table_insert(priv->cached_users_hash, g_strdup(user->name), user);
+            g_mutex_unlock(&priv->users_mutex);
+        }
     }
 }
 
@@ -332,7 +339,7 @@ static void ipcam_iajax_update_cached_property(IpcamIAjax *iajax, const gchar *n
     g_return_if_fail(JSON_NODE_HOLDS_OBJECT(body));
     IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
     
-    /* only get users return a json array */
+    /* only get set add del users return a json array */
     if (g_strstr_len(name, -1, "users"))
     {
         JsonArray *items_ary = json_object_get_array_member(json_node_get_object(body), "items");
@@ -415,7 +422,6 @@ static void set_message_handler(GObject *obj, IpcamMessage* msg, gboolean timeou
         gchar *msg_id = NULL;
 		JsonNode *body = NULL;
 		g_object_get(msg, "id", &msg_id, "body", &body, NULL);
-        g_print("connection id %s\n", msg_id);
 		if (msg_id && body)
         {
             ipcam_iajax_send_response(iajax, msg_id, body);
@@ -708,6 +714,31 @@ static void ipcam_iajax_query_event_proc(IpcamIAjax *iajax)
 	g_object_unref(builder);
 }
 
+static gboolean connection_clear(gpointer key, gpointer value, gpointer data)
+{
+    CONNECTION *conn = (CONNECTION *)value;
+    conn->timeout++;
+    if (conn->timeout > CONNECTION_TIMEOUT)
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+static void ipcam_iajax_connection_clear(GObject *obj)
+{
+    g_return_if_fail(IPCAM_IS_IAJAX(obj));
+    IpcamIAjax *iajax = IPCAM_IAJAX(obj);
+    IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
+
+    g_mutex_lock(&priv->connection_mutex);
+    g_hash_table_foreach_remove(priv->connection_hash, connection_clear, iajax);
+    g_mutex_unlock(&priv->connection_mutex);
+}
+
 void ipcam_iajax_property_handler(IpcamIAjax *iajax, const gchar *name, JsonNode *body)
 {
     g_return_if_fail(IPCAM_IS_IAJAX(iajax));
@@ -749,12 +780,10 @@ void ipcam_iajax_set_configuration(IpcamIAjax *iajax, IpcamRequestMessage *msg,
         conn->response = response;
         conn->socket = socket;
         conn->timeout = 0;
-        g_print("connection id %s\n", id);
         g_mutex_lock(&priv->connection_mutex);
         g_hash_table_insert(priv->connection_hash, id, conn);
         g_mutex_unlock(&priv->connection_mutex);
     }
-    
 }
 
 GList *ipcam_iajax_get_users(IpcamIAjax *iajax)

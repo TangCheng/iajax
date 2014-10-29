@@ -44,7 +44,27 @@ enum _Weekday
     ENUM_WEEKDAY_LAST
 } Weekday;
 
+enum _RectInfo
+{
+    ENUM_RECT_LEFT       = 0,
+    ENUM_RECT_TOP        = 1,
+    ENUM_RECT_WIDTH      = 2,
+    ENUM_RECT_HEIGHT     = 3,
+    ENUM_RECT_INFO_LAST
+} RectInfo;
+
+enum _ColorMember
+{
+    ENUM_COLOR_RED           = 0,
+    ENUM_COLOR_GREED         = 1,
+    ENUM_COLOR_BLUE          = 2,
+    ENUM_COLOR_ALPHA         = 3,
+    ENUM_COLOR_MEMBER_LAST
+} ColorMember;
+
 extern const gchar *weekday_name[];
+extern const gchar *rect_info[];
+extern const gchar *color_member[];
 
 typedef struct _Schedules
 {

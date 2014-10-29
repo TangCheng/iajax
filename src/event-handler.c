@@ -55,4 +55,6 @@ ipcam_iajax_event_handler_run_impl(IpcamEventHandler *event_handler, IpcamMessag
     g_object_get(G_OBJECT(message), "body", &body, NULL);
 
     ipcam_iajax_property_handler(iajax, event, body);
+
+    g_free(event);
 }

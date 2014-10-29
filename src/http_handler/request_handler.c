@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <string.h>
+#include <messages.h>
 #include "request_handler.h"
 #include "iajax.h"
 
@@ -125,4 +126,61 @@ void ipcam_http_request_handler_register(IpcamHttpRequestHandler *http_request_h
     IpcamHttpRequestHandlerPrivate *priv =
         ipcam_http_request_handler_get_instance_private(http_request_handler);
     priv->handler_list = g_list_append(priv->handler_list, handler);
+}
+
+void ipcam_http_request_handler_do_put_action(IpcamHttpRequestHandler *http_request_handler,
+                                              IpcamHttpRequest *request, IpcamHttpResponse *response,
+                                              GSocket *socket, const gchar *action)
+{
+    g_return_if_fail(IPCAM_IS_HTTP_REQUEST_HANDLER(http_request_handler));
+    gchar *body = NULL;
+    IpcamHttpRequestHandlerPrivate *priv =
+        ipcam_http_request_handler_get_instance_private(http_request_handler);
+    g_object_get(request, "body", &body, NULL);
+    if (body)
+    {
+        JsonParser *parser = json_parser_new();
+        JsonNode *root_node;
+        if (json_parser_load_from_data(parser, body, -1, NULL))
+        {
+            root_node = json_node_copy(json_parser_get_root(parser));
+            IpcamRequestMessage *req_msg = g_object_new(IPCAM_REQUEST_MESSAGE_TYPE,
+                                                        "action", action,
+                                                        "body", root_node,
+                                                        NULL);
+            ipcam_iajax_set_configuration(priv->iajax, req_msg, response, socket);
+            g_object_unref(req_msg);
+        }
+        g_object_unref(parser);
+        g_free(body);
+    }
+}
+void add_value(JsonBuilder *builder, const gchar *name, GVariant *value)
+{
+    g_return_if_fail(value);
+    
+    if (g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32))
+    {    
+        json_builder_set_member_name(builder, name);
+        json_builder_add_int_value(builder, g_variant_get_uint32(value));
+    }
+    else if (g_variant_is_of_type(value, G_VARIANT_TYPE_INT64))
+    {    
+        json_builder_set_member_name(builder, name);
+        json_builder_add_int_value(builder, g_variant_get_int64(value));
+    }
+    else if (g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN))
+    {
+        json_builder_set_member_name(builder, name);
+        json_builder_add_boolean_value(builder, g_variant_get_boolean(value));
+    }
+    else if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING))
+    {
+        json_builder_set_member_name(builder, name);
+        json_builder_add_string_value(builder, g_variant_get_string(value, NULL));
+    }
+    else
+    {
+        g_warn_if_reached();
+    }
 }

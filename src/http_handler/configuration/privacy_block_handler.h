@@ -1,7 +1,7 @@
 #ifndef __HTTP_PRIVACY_BLOCK_HANDLER_H__
 #define __HTTP_PRIVACY_BLOCK_HANDLER_H__
 
-#include "http_request_handler.h"
+#include "../request_handler.h"
 
 #define IPCAM_HTTP_PRIVACY_BLOCK_HANDLER_TYPE (ipcam_http_privacy_block_handler_get_type())
 #define IPCAM_HTTP_PRIVACY_BLOCK_HANDLER(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), IPCAM_HTTP_PRIVACY_BLOCK_HANDLER_TYPE, IpcamHttpPrivacyBlockHandler))

@@ -8,13 +8,6 @@
 
 G_DEFINE_TYPE(IpcamHttpBaseInfoHandler, ipcam_http_base_info_handler, IPCAM_HTTP_REQUEST_HANDLER_TYPE)
 
-static void add_value(JsonBuilder *builder, const gchar *name, GVariant *value)
-{
-    g_return_if_fail(value);
-    json_builder_set_member_name(builder, name);
-    json_builder_add_string_value(builder, g_variant_get_string(value, NULL));
-}
-
 static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
 {
     JsonBuilder *builder;
@@ -35,7 +28,11 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
         gchar *key = NULL;
         asprintf(&key, "base_info:%s", name);
         value = ipcam_iajax_get_configuration(iajax, key);
-        add_value(builder, name, value);
+        if (value)
+        {
+            add_value(builder, name, value);
+            g_variant_unref(value);
+        }
         g_free(key);
     }
     json_builder_end_object(builder);
@@ -96,36 +93,13 @@ START_HANDLER(get_base_info, HTTP_GET, "/api/1.0/base_info.json", http_request, 
 }
 END_HANDLER
 
-static void do_put_action(IpcamIAjax *iajax, JsonNode *request, IpcamHttpResponse *response, GSocket *socket)
-{
-    IpcamRequestMessage *req_msg = g_object_new(IPCAM_REQUEST_MESSAGE_TYPE,
-                                                "action", "set_base_info",
-                                                "body", request,
-                                                NULL);
-    ipcam_iajax_set_configuration(iajax, req_msg, response, socket);
-    g_object_unref(req_msg);
-}
-
 START_HANDLER(put_base_info, HTTP_PUT, "/api/1.0/base_info.json", http_request, http_response, socket)
 {
-    gchar *body = NULL;
-    IpcamIAjax *iajax;
-
-    g_object_get(put_base_info, "app", &iajax, NULL);
-    g_object_get(http_request, "body", &body, NULL);
-    if (body)
-    {
-        JsonParser *parser = json_parser_new();
-        JsonNode *root_node;
-        if (json_parser_load_from_data(parser, body, -1, NULL))
-        {
-            root_node = json_node_copy(json_parser_get_root(parser));
-
-            do_put_action(iajax, root_node, http_response, socket);
-        }
-        g_object_unref(parser);
-        g_free(body);
-    }
+    ipcam_http_request_handler_do_put_action(put_base_info,
+                                             http_request,
+                                             http_response,
+                                             socket,
+                                             "set_base_info");
 
     ret = TRUE;
 }

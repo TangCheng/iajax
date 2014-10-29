@@ -54,6 +54,9 @@ gboolean ipcam_http_request_handler_dispatch(IpcamHttpRequestHandler *http_reque
                                              GSocket *socket);
 void ipcam_http_request_handler_register(IpcamHttpRequestHandler *http_request_handler,
                                          handler_data *handler);
-
+void ipcam_http_request_handler_do_put_action(IpcamHttpRequestHandler *http_request_handler,
+                                              IpcamHttpRequest *request, IpcamHttpResponse *response,
+                                              GSocket *socket, const gchar *action);
+void add_value(JsonBuilder *builder, const gchar *name, GVariant *value);
 
 #endif /* __HTTP_REQUEST_HANDLER_H__ */
