@@ -47,7 +47,7 @@ static void
 ipcam_iajax_event_handler_run_impl(IpcamEventHandler *event_handler, IpcamMessage *message)
 {
     IpcamIAjax *iajax;
-    const gchar *event;
+    gchar *event;
     JsonNode *body;
 
     g_object_get(G_OBJECT(message), "event", &event, NULL);

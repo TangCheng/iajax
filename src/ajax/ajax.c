@@ -226,7 +226,8 @@ static gboolean check_authorize(IpcamIAjax *iajax, IpcamHttpRequest *request, gc
     g_object_get(request, "path", &path, NULL);
     if (path)
     {
-        if (g_strstr_len(path, -1, "login"))
+        if (g_strstr_len(path, -1, "login") ||
+            g_strstr_len(path, -1, "upgrade"))
         {
             ret = TRUE;
         }
@@ -269,6 +270,7 @@ gboolean check_operators_permission(const gchar *path)
     {
         "login.json",
         "logout.json",
+        "upgrade.json",
         "misc.json",
         "vidoe.json",
         "network.json",
@@ -297,6 +299,8 @@ gboolean check_users_permission(const gchar *path)
     const gchar *paths[] =
     {
         "login.json",
+        "logout.json",
+        "upgrade.json",
         "logout.json",
         "misc.json",
         "vidoe.json",

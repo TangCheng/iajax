@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <errno.h>
+#include <time.h>
 #include <glib.h>
 #include "sysutils.h"
 
@@ -78,30 +79,25 @@ gboolean sysutils_get_uptime(gchar **uptime)
 {
     gchar buf[64];
     struct sysinfo s_info;
-    time_t now;
     gboolean ret = FALSE;
 
     if (uptime && (0 == sysinfo(&s_info)))
     {
-        sysinfo(&s_info);
-        time(&now);
-        now -= s_info.uptime;
-
-        guint64 day = now / SECONDS_OF_DAY;
-        guint64 hour = (now % SECONDS_OF_DAY) / SECONDS_OF_HOUR;
-        guint64 min = ((now % SECONDS_OF_DAY) % SECONDS_OF_HOUR) / SECONDS_OF_MIN;
+        guint32 day = s_info.uptime / SECONDS_OF_DAY;
+        guint32 hour = (s_info.uptime % SECONDS_OF_DAY) / SECONDS_OF_HOUR;
+        guint32 min = ((s_info.uptime % SECONDS_OF_DAY) % SECONDS_OF_HOUR) / SECONDS_OF_MIN;
     
         if (day == 0)
         {
-            g_snprintf(buf, 64, "%llu:%llu", hour, min);
+            g_snprintf(buf, 64, "%lu:%lu", hour, min);
         }
         else if (day == 1)
         {
-            g_snprintf(buf, 64, "1 day, %llu:%llu", hour, min);
+            g_snprintf(buf, 64, "1 day, %lu:%lu", hour, min);
         }
         else
         {
-            g_snprintf(buf, 64, "%llu days, %llu:%llu", day, hour, min);
+            g_snprintf(buf, 64, "%lu days, %lu:%lu", day, hour, min);
         }
         
         *uptime = g_strdup(buf);
@@ -117,7 +113,7 @@ gboolean sysutils_get_cpu_info(gchar **cpuinfo)
     gchar buf[64];
     gboolean ret = FALSE;
     
-    fp = popen("cat /proc/cpuinfo | awk -F: \'{print $2}\' | sed \'s/\\ //g\'", "r");
+    fp = popen("cat /proc/cpuinfo | grep \'BogoMIPS\'  | awk -F: \'{print $2}\' | sed \'s/\\ //g\'", "r");
     if (fp) {
         fscanf(fp, "%s", buf);
         g_strlcat(buf, "MHz", 64);
@@ -129,6 +125,154 @@ gboolean sysutils_get_cpu_info(gchar **cpuinfo)
     return ret;
 }
 
-gboolean sysutils_get_cpu_usage(gchar **usage)
+guint sysutils_get_cpu_usage(void)
 {
+    guint usage = 0;
+
+    FILE *fp = popen("cat /proc/stat", "r");
+    if (fp == NULL) {
+        perror("error get cpu usage");
+        return usage;
+    }
+
+    /* 
+     * Output for example
+     * cpu  672316 0 43292 158 0 0 101 0 0 0
+     */
+    guint64 user, nic, sys, idle, io, irq, sirq, stealstolen, guest;
+    while (!feof(fp))
+    {
+        char buf[256];
+        if (fgets(buf, sizeof(buf), fp) == NULL)
+            break;
+        if (sscanf(buf, "cpu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
+                   &user, &nic, &sys, &idle, &io, &irq, &sirq,
+                   &stealstolen, &guest) == 9)
+        {
+            usage = (user + sys) * 100 / (user + sys + nic + idle + io + irq);
+            break;
+        }
+    }
+
+    pclose(fp);
+
+    return usage;
+}
+
+gboolean sysutils_get_memory_info(gchar **total, gchar **used_mem, gchar **free_mem, guint *usage)
+{
+    gchar buf[64];
+    struct sysinfo s_info;
+    gboolean ret = FALSE;
+
+    if (total && used_mem && free_mem && usage && (0 == sysinfo(&s_info)))
+    {
+        g_snprintf(buf, 64, "%luMB", s_info.totalram / 1024 / 1024);
+        *total = g_strdup(buf);
+        g_snprintf(buf, 64, "%luMB", (s_info.totalram - s_info.freeram) / 1024 / 1024);
+        *used_mem = g_strdup(buf);
+        g_snprintf(buf, 64, "%luMB", s_info.freeram / 1024 / 1024);
+        *free_mem = g_strdup(buf);
+        *usage = (s_info.totalram - s_info.freeram) * (guint64)100 / s_info.totalram;
+        
+        ret = TRUE;
+    }
+
+    return ret;
+}
+
+gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved, guint *tx_usage, guint *rx_usage)
+{
+    gchar buf[64];
+    gboolean ret = FALSE;
+    FILE *fp;
+    static guint64 old_tx = 0;
+    static guint64 old_rx = 0;
+    static time_t old_time = 0;
+    guint64 tx;
+    guint64 rx;
+    guint bw = 1000;
+
+    if (band_width && sent && recved && tx_usage && rx_usage)
+    {
+        fp = popen("cat /sys/class/net/eth0/speed", "r");
+        if (fp) {
+            fscanf(fp, "%u", &bw);
+            g_snprintf(buf, 64, "%uMbps", bw);
+            *band_width = g_strdup(buf);
+            pclose(fp);
+        }
+
+        fp = popen("cat /sys/class/net/eth0/statistics/tx_bytes", "r");
+        if (fp) {
+            fscanf(fp, "%llu", &tx);
+            if (tx > 1024 * 1024 * 1024LL)
+            {
+                g_snprintf(buf, 64, "%.01fGB", tx / 1024 / 1024 / 1024.0);
+            }
+            else if (tx > 1024 * 1024LL)
+            {
+                g_snprintf(buf, 64, "%.01fMB", tx / 1024 / 1024.0);
+            }
+            else if (tx > 1024LL)
+            {
+                g_snprintf(buf, 64, "%.01fKB", tx / 1024.0);
+            }
+            else
+            {
+                g_snprintf(buf, 64, "%lluBytes", tx);
+            }
+            
+            *sent = g_strdup(buf);
+            pclose(fp);
+        }
+
+        fp = popen("cat /sys/class/net/eth0/statistics/rx_bytes", "r");
+        if (fp) {
+            fscanf(fp, "%llu", &rx);
+            if (rx > 1024LL * 1024 * 1024)
+            {
+                g_snprintf(buf, 64, "%.01fGB", rx / 1024 / 1024 / 1024.0);
+            }
+            else if (rx > 1024LL * 1024)
+            {
+                g_snprintf(buf, 64, "%.01fMB", rx / 1024 / 1024.0);
+            }
+            else if (rx > 1024LL)
+            {
+                g_snprintf(buf, 64, "%.01fKB", rx / 1024.0);
+            }
+            else
+            {
+                g_snprintf(buf, 64, "%lluBytes", rx);
+            }
+            *recved = g_strdup(buf);
+            pclose(fp);
+        }
+
+        time_t now;
+        time(&now);
+        *tx_usage = 0;
+        *rx_usage = 0;
+        if (now > old_time)
+        {
+            if (tx > old_tx)
+            {
+                *tx_usage = (tx - old_tx) * 8LL * 100 / (now - old_time) / 1024 / 1024 / bw;
+                old_tx = tx;
+            }
+
+            if (rx > old_rx)
+            {
+                *rx_usage = (rx - old_rx) * 8LL * 100 / (now - old_time) / 1024 / 1024 / bw;
+                old_rx = rx;
+            }
+        }
+
+        old_time = now;
+
+        ret = TRUE;
+    }
+
+    return ret;
 }
