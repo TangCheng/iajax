@@ -26,6 +26,8 @@ START_HANDLER(post_system, HTTP_POST, "/api/1.0/system.json", http_request, http
             if (json_object_has_member(object, "action"))
             {
                 action = g_strdup(json_object_get_string_member(object, "action"));
+                g_object_set(http_response, "status", 200, NULL);
+                ipcam_http_response_write_string(http_response, socket);
                 if (g_str_equal(action , "reboot"))
                 {
                     sysutils_reboot();
@@ -36,7 +38,6 @@ START_HANDLER(post_system, HTTP_POST, "/api/1.0/system.json", http_request, http
                 else if (g_str_equal(action, "hard_reset"))
                 {
                 }
-                g_object_set(http_response, "status", 200, NULL);
             }
         }
         g_object_unref(parser);
