@@ -139,17 +139,28 @@ guint sysutils_get_cpu_usage(void)
      * Output for example
      * cpu  672316 0 43292 158 0 0 101 0 0 0
      */
-    guint64 user, nic, sys, idle, io, irq, sirq, stealstolen, guest;
+    static guint64 old_user = 0, old_nic = 0, old_sys = 0, old_idle = 0, old_io = 0, old_irq = 0, old_sirq = 0;
+    guint64 user, nic, sys, idle, io, irq, sirq;
     while (!feof(fp))
     {
         char buf[256];
         if (fgets(buf, sizeof(buf), fp) == NULL)
             break;
-        if (sscanf(buf, "cpu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
-                   &user, &nic, &sys, &idle, &io, &irq, &sirq,
-                   &stealstolen, &guest) == 9)
+        if (sscanf(buf, "cpu %llu %llu %llu %llu %llu %llu %llu",
+                   &user, &nic, &sys, &idle, &io, &irq, &sirq) == 7)
         {
-            usage = (user + sys) * 100 / (user + sys + nic + idle + io + irq);
+            guint64 total_idle = idle - old_idle;
+            guint64 total = (user + nic + sys + idle + io + irq + sirq) -
+                (old_user + old_nic + old_sys + old_idle + old_io + old_irq + old_sirq);
+            
+            usage = 100 - ((total_idle ) * 100 / total);
+            old_user = user;
+            old_nic = nic;
+            old_sys = sys;
+            old_idle = idle;
+            old_io = io;
+            old_irq = irq;
+            old_sirq = sirq;
             break;
         }
     }
@@ -167,11 +178,11 @@ gboolean sysutils_get_memory_info(gchar **total, gchar **used_mem, gchar **free_
 
     if (total && used_mem && free_mem && usage && (0 == sysinfo(&s_info)))
     {
-        g_snprintf(buf, 64, "%luMB", s_info.totalram / 1024 / 1024);
+        g_snprintf(buf, 64, "%luKB", s_info.totalram / 1024);
         *total = g_strdup(buf);
-        g_snprintf(buf, 64, "%.01fMB", (s_info.totalram - s_info.freeram) / 1024.0 / 1024);
+        g_snprintf(buf, 64, "%luKB", (s_info.totalram - s_info.freeram) / 1024);
         *used_mem = g_strdup(buf);
-        g_snprintf(buf, 64, "%.01fMB", s_info.freeram / 1024.0 / 1024);
+        g_snprintf(buf, 64, "%luKB", s_info.freeram  / 1024);
         *free_mem = g_strdup(buf);
         *usage = (s_info.totalram - s_info.freeram) * (guint64)100 / s_info.totalram;
         
