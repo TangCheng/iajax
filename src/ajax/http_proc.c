@@ -25,6 +25,7 @@
 #include "http_handler/upgrade/upgrade_handler.h"
 
 #include "http_handler/system/sysinfo_handler.h"
+#include "http_handler/system/system_handler.h"
 
 #include "iajax.h"
 #include "common.h"
@@ -91,6 +92,7 @@ static void ipcam_http_proc_init(IpcamHttpProc *self)
         IPCAM_HTTP_UPGRADE_HANDLER_TYPE,
 
         IPCAM_HTTP_SYSINFO_HANDLER_TYPE,
+        IPCAM_HTTP_SYSTEM_HANDLER_TYPE,
     };
     gint i = 0;
 

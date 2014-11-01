@@ -169,9 +169,9 @@ gboolean sysutils_get_memory_info(gchar **total, gchar **used_mem, gchar **free_
     {
         g_snprintf(buf, 64, "%luMB", s_info.totalram / 1024 / 1024);
         *total = g_strdup(buf);
-        g_snprintf(buf, 64, "%luMB", (s_info.totalram - s_info.freeram) / 1024 / 1024);
+        g_snprintf(buf, 64, "%.01fMB", (s_info.totalram - s_info.freeram) / 1024.0 / 1024);
         *used_mem = g_strdup(buf);
-        g_snprintf(buf, 64, "%luMB", s_info.freeram / 1024 / 1024);
+        g_snprintf(buf, 64, "%.01fMB", s_info.freeram / 1024.0 / 1024);
         *free_mem = g_strdup(buf);
         *usage = (s_info.totalram - s_info.freeram) * (guint64)100 / s_info.totalram;
         
@@ -275,4 +275,9 @@ gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved,
     }
 
     return ret;
+}
+
+void sysutils_reboot(void)
+{
+    system("reboot");
 }
