@@ -264,8 +264,6 @@ void ipcam_http_request_add_header_value(IpcamHttpRequest *http_request, gchar *
     IpcamHttpRequestPrivate *priv = ipcam_http_request_get_instance_private(http_request);
     g_return_if_fail(priv->header_field);
     g_hash_table_insert(priv->header_hash, g_strdup(priv->header_field), g_strdup(value));
-    if (g_str_equal(priv->header_field, "Set-Cookie"))
-        g_print("%s\n", value);
 }
 gchar *ipcam_http_request_get_header_value(IpcamHttpRequest *http_request, gchar *field)
 {
