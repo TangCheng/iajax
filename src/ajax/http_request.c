@@ -264,6 +264,8 @@ void ipcam_http_request_add_header_value(IpcamHttpRequest *http_request, gchar *
     IpcamHttpRequestPrivate *priv = ipcam_http_request_get_instance_private(http_request);
     g_return_if_fail(priv->header_field);
     g_hash_table_insert(priv->header_hash, g_strdup(priv->header_field), g_strdup(value));
+    if (g_str_equal(priv->header_field, "Set-Cookie"))
+        g_print("%s\n", value);
 }
 gchar *ipcam_http_request_get_header_value(IpcamHttpRequest *http_request, gchar *field)
 {
@@ -276,4 +278,14 @@ gboolean ipcam_http_request_is_get(IpcamHttpRequest *http_request)
     g_return_val_if_fail(IPCAM_IS_HTTP_REQUEST(http_request), FALSE);
     IpcamHttpRequestPrivate *priv = ipcam_http_request_get_instance_private(http_request);
     return priv->method == HTTP_GET;
+}
+IpcamHttpResponse *ipcam_http_request_get_response(IpcamHttpRequest *http_request, guint code)
+{
+    g_return_val_if_fail(IPCAM_IS_HTTP_REQUEST(http_request), NULL);
+    IpcamHttpRequestPrivate *priv = ipcam_http_request_get_instance_private(http_request);
+    return g_object_new(IPCAM_HTTP_RESPONSE_TYPE,
+                        "http-major", priv->http_major,
+                        "http-minor", priv->http_minor,
+                        "status", code,
+                        NULL);
 }

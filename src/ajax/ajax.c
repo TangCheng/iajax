@@ -6,6 +6,8 @@
 #include "http_request.h"
 #include "http_proc.h"
 #include "http_response.h"
+#include "common.h"
+#include "login/sha1.h"
 
 enum {
   PROP_0,
@@ -216,6 +218,164 @@ static gpointer ajax_worker(gpointer data)
 
     return NULL;
 }
+static gboolean check_authorize(IpcamIAjax *iajax, IpcamHttpRequest *request, gchar **role)
+{
+    gboolean ret = FALSE;
+    gchar *path = NULL;
+
+    g_object_get(request, "path", &path, NULL);
+    if (path)
+    {
+        if (g_strstr_len(path, -1, "login"))
+        {
+            ret = TRUE;
+        }
+        else
+        {
+            gchar *cookie = ipcam_http_request_get_header_value(request, "Set-Cookie");
+            if (cookie)
+            {
+                gchar *token_start = g_strstr_len(cookie, -1, "token=");
+                if (token_start)
+                {
+                    gchar *token = g_malloc0(SHA1_DIGEST_SIZE * 2 + 1);
+                    guint i = 0;
+                    if (token)
+                    {
+                        do 
+                        {
+                            token[i] = token_start[6 + i];
+                            i++;
+                        } while (!(token_start[6 + i] == '\0' || token_start[6 + i] == ';'));
+                    
+                        ret = ipcam_iajax_check_login(iajax, token, role);
+                        g_free(token);
+                    }
+                }
+                g_free(cookie);
+            }
+        }
+        g_free(path);
+    }
+
+    return ret;
+}
+gboolean check_operators_permission(const gchar *path)
+{
+    g_return_val_if_fail(path, FALSE);
+    gboolean ret = FALSE;
+    gint i = 0;
+    const gchar *paths[] =
+    {
+        "login.json",
+        "logout.json",
+        "misc.json",
+        "vidoe.json",
+        "network.json",
+        "day_night_mode.json",
+        "system.json",
+        "event.json",
+        "ptz.json"
+    };
+    
+    for (i = 0; i < ARRAY_SIZE(paths); i++)
+    {
+        if (g_str_equal(path, paths[i]))
+        {
+            ret = TRUE;
+            break;
+        }   
+    }
+
+    return ret;
+}
+gboolean check_users_permission(const gchar *path)
+{
+    g_return_val_if_fail(path, FALSE);
+    gboolean ret = FALSE;
+    gint i = 0;
+    const gchar *paths[] =
+    {
+        "login.json",
+        "logout.json",
+        "misc.json",
+        "vidoe.json",
+        "network.json"
+    };
+
+    for (i = 0; i < ARRAY_SIZE(paths); i++)
+    {
+        if (g_str_equal(path, paths[i]))
+        {
+            ret = TRUE;
+            break;
+        }   
+    }
+ 
+    return ret;
+}
+static gboolean check_permission(IpcamIAjax *iajax, IpcamHttpRequest *request, gchar *role)
+{
+    gboolean ret = FALSE;
+    gchar *path = NULL;
+
+    g_object_get(request, "path", &path, NULL);
+    if (path)
+    {
+        if (role)
+        {
+            if (g_str_equal(role, "administrator"))
+            {
+                ret = TRUE;
+            }
+            else if (g_str_equal(role, "operator"))
+            {
+                ret = check_operators_permission(g_strrstr(path, "/") + 1);
+            }
+            else
+            {
+                ret = check_users_permission(g_strrstr(path, "/") + 1);
+            }
+        }
+        else
+        {
+            ret = check_users_permission(g_strrstr(path, "/") + 1);
+        }
+        g_free(path);
+    }
+    
+    return ret;
+}
+static gboolean check_send_response(IpcamHttpRequest *request, IpcamHttpResponse *response)
+{
+    gboolean ret = FALSE;
+    gchar *path = NULL;
+
+    g_object_get(request, "path", &path, NULL);
+    if (path)
+    {
+        if (g_strstr_len(path, -1, "login"))
+        {
+            ret = TRUE;
+        }
+        else
+        {
+            guint code;
+            g_object_get(response, "status", &code, NULL);
+            if (ipcam_http_request_is_get(request))
+            {
+                ret = TRUE;
+            }
+            else if (code == 400)
+            {
+                ret = TRUE;
+            }
+        }
+        g_free(path);
+    }
+
+    return ret;
+}
 static gpointer request_proc(gpointer data)
 {
 #define BUFFER_SIZE 2048
@@ -224,38 +384,46 @@ static gpointer request_proc(gpointer data)
     GSocket *worker = params->socket;
     gchar *buffer = g_new0(gchar, BUFFER_SIZE);
     gssize len;
-    gboolean is_get = FALSE;
+    gboolean send_response = TRUE;
+    gchar *role = NULL;
 
     len = g_socket_receive(worker, buffer, BUFFER_SIZE, NULL, NULL);
     if (len > 0)
     {
         IpcamHttpParser *parser = g_object_new(IPCAM_HTTP_PARSER_TYPE, NULL);
         IpcamHttpRequest *request = ipcam_http_parser_get_request(parser, buffer, len);
-        IpcamHttpProc *proc = g_object_new(IPCAM_HTTP_PROC_TYPE, "app", app, NULL);
-        IpcamHttpResponse *response = ipcam_http_proc_get_response(proc, request, worker);
-        is_get = ipcam_http_request_is_get(request);
-        if (is_get && response)
+        IpcamHttpResponse *response = NULL;
+        
+        if (check_authorize(app, request, &role))
+        {
+            if (check_permission(app, request, role))
+            {
+                IpcamHttpProc *proc = g_object_new(IPCAM_HTTP_PROC_TYPE, "app", app, NULL);
+                response = ipcam_http_proc_get_response(proc, request, worker);
+                send_response = check_send_response(request, response);
+                g_clear_object(&proc);
+            }
+            else
+            {
+                response = ipcam_http_request_get_response(request, 403);
+            }
+        }
+        else
+        {
+            response = ipcam_http_request_get_response(request, 401);
+        }
+
+        if (send_response && response)
         {
             ipcam_http_response_write_string(response, worker);
             g_clear_object(&response);
         }
-        else if (response)
-        {
-            guint code;
-            g_object_get(response, "status", &code, NULL);
-            if (code == 400)
-            {
-                ipcam_http_response_write_string(response, worker);
-                g_clear_object(&response);
-                is_get = TRUE;
-            }
-        }
-        g_clear_object(&proc);
+        g_free(role);
         g_clear_object(&request);
         g_clear_object(&parser);
     }
 
-    if (is_get)
+    if (send_response)
     {
         g_socket_close(worker, NULL);
         g_clear_object(&worker);

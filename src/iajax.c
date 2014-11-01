@@ -4,6 +4,7 @@
 #include "iajax.h"
 #include "event-handler.h"
 #include "ajax/ajax.h"
+#include "login/login_manager.h"
 #include "common.h"
 
 #define PROPERTY_PATH_MAX_DEPTH  5
@@ -12,7 +13,7 @@
 typedef struct _IpcamIAjaxPrivate
 {
     IpcamAjax *ajax;
-    //IpcamLoginInfoManager *login_manager;
+    IpcamLoginManager *login_manager;
     GHashTable *cached_users_hash;
     GHashTable *cached_property_hash;
     GHashTable *connection_hash;
@@ -66,6 +67,7 @@ static void ipcam_iajax_query_event_cover(IpcamIAjax *iajax);
 static void ipcam_iajax_query_event_proc(IpcamIAjax *iajax);
 
 static void ipcam_iajax_connection_clear(GObject *obj);
+static void ipcam_iajax_login_timeout(GObject *obj);
 
 static void property_value_destroy_func(gpointer value)
 {
@@ -117,6 +119,8 @@ static void ipcam_iajax_finalize(GObject *object)
     g_mutex_clear(&priv->property_mutex);
     
     g_clear_object(&priv->ajax);
+    g_clear_object(&priv->login_manager);
+    
     G_OBJECT_CLASS(ipcam_iajax_parent_class)->finalize(object);
 }
 
@@ -194,6 +198,12 @@ static void ipcam_iajax_before_start(IpcamBaseService *base_service)
     ipcam_iajax_query_event_cover(iajax);
     ipcam_iajax_query_event_proc(iajax);
 
+    priv->login_manager = g_object_new(IPCAM_LOGIN_MANAGER_TYPE,
+                                       "app", iajax,
+                                       NULL);
+    ipcam_base_app_add_timer(IPCAM_BASE_APP(iajax), "login_timeout", "30",
+                             ipcam_iajax_login_timeout);
+    
     if (ajax_addr != NULL && port != NULL)
     {
         priv->ajax = g_object_new(IPCAM_AJAX_TYPE,
@@ -739,6 +749,15 @@ static void ipcam_iajax_connection_clear(GObject *obj)
     g_mutex_unlock(&priv->connection_mutex);
 }
 
+static void ipcam_iajax_login_timeout(GObject *obj)
+{
+    g_return_if_fail(IPCAM_IS_IAJAX(obj));
+    IpcamIAjax *iajax = IPCAM_IAJAX(obj);
+    IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
+
+    ipcam_login_manager_timeout(priv->login_manager);
+}
+
 void ipcam_iajax_property_handler(IpcamIAjax *iajax, const gchar *name, JsonNode *body)
 {
     g_return_if_fail(IPCAM_IS_IAJAX(iajax));
@@ -828,4 +847,29 @@ gchar *ipcam_iajax_get_user_role(IpcamIAjax *iajax, const gchar *name)
     }
     g_mutex_unlock(&priv->users_mutex);
     return role;
+}
+
+gboolean ipcam_iajax_login(IpcamIAjax *iajax, const gchar *username,
+                           const gchar *password, gchar **token, gchar **role)
+{
+    g_return_val_if_fail(IPCAM_IS_IAJAX(iajax), FALSE);
+    IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
+
+    return ipcam_login_manager_login(priv->login_manager, username, password, token, role);
+}
+
+gboolean ipcam_iajax_check_login(IpcamIAjax *iajax, const gchar *token, gchar **role)
+{
+    g_return_val_if_fail(IPCAM_IS_IAJAX(iajax), FALSE);
+    IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
+
+    return ipcam_login_manager_check_login(priv->login_manager, token, role);
+}
+
+void ipcam_iajax_logout(IpcamIAjax *iajax, const gchar *token)
+{
+    g_return_if_fail(IPCAM_IS_IAJAX(iajax));
+    IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
+
+    return ipcam_login_manager_logout(priv->login_manager, token);
 }

@@ -20,28 +20,10 @@
 #ifndef _SYSUTILS_H_
 #define _SYSUTILS_H_
 
-int sysutils_datetime_get_datetime(gchar **str_value);
-int sysutils_datetime_set_datetime(gchar *str_value);
-
-int sysutils_make_directory(char *path, long mode);
-
-int sysutils_network_if_indextoname(unsigned int ifindex, char *ifname);
-int sysutils_network_set_hwaddr(const char *ifname, const char *hwaddr);
-int sysutils_network_get_hwaddr(const char *ifname, char **hwaddr);
-int sysutils_network_get_address(const char *ifname,
-                                 char **ipaddr,
-                                 char **netmask,
-                                 char **broadaddr);
-int sysutils_network_set_address(const char *ifname,
-                                 const char *ipaddr,
-                                 const char *netmask,
-                                 const char *broadaddr);
-int sysutils_network_get_gateway(const char *ifname, char **gwaddr);
-int sysutils_network_set_gateway(const char *ifname, const char *gwaddr);
-int sysutils_network_get_dns(const char *ifname, char **dns, int *size);
-int sysutils_network_set_dns(const char *ifname, const char **dns, int size);
-int sysutils_network_get_hostname(const char **hostname);
-int sysutils_network_set_hostname(const char *hostname);
+gboolean sysutils_datetime_get_datetime(gchar **str_value);
+gint sysutils_get_upgrade_status(void);
+gboolean sysutils_get_uptime(gchar **uptime);
+gboolean sysutils_get_cpu_info(gchar **cpuinfo);
 
 #endif // _SYSUTILS_H_
 

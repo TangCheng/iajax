@@ -36,5 +36,9 @@ GList *ipcam_iajax_get_users(IpcamIAjax *iajax);
 gchar *ipcam_iajax_get_user_pwd(IpcamIAjax *iajax, const gchar *name);
 gchar *ipcam_iajax_get_user_role(IpcamIAjax *iajax, const gchar *name);
 
+gboolean ipcam_iajax_login(IpcamIAjax *iajax, const gchar *username,
+                           const gchar *password, gchar **token, gchar **role);
+gboolean ipcam_iajax_check_login(IpcamIAjax *iajax, const gchar *token, gchar **role);
+void ipcam_iajax_logout(IpcamIAjax *iajax, const gchar *token);
 
 #endif /* __IAJAX_H__ */

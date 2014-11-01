@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include "http_response.h"
 
 #define IPCAM_HTTP_REQUEST_TYPE (ipcam_http_request_get_type())
 #define IPCAM_HTTP_REQUEST(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), IPCAM_HTTP_REQUEST_TYPE, IpcamHttpRequest))
@@ -29,5 +30,6 @@ void ipcam_http_request_add_header_field(IpcamHttpRequest *http_request, gchar *
 void ipcam_http_request_add_header_value(IpcamHttpRequest *http_request, gchar *value);
 gchar *ipcam_http_request_get_header_value(IpcamHttpRequest *http_request, gchar *field);
 gboolean ipcam_http_request_is_get(IpcamHttpRequest *http_request);
+IpcamHttpResponse *ipcam_http_request_get_response(IpcamHttpRequest *http_request, guint code);
 
 #endif /* __HTTP_REQUEST_H__ */

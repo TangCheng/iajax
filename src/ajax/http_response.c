@@ -169,6 +169,9 @@ static TMPL_varlist *ipcam_http_response_get_varlist(IpcamHttpResponse *http_res
     case 400:
         varlist = TMPL_add_var(varlist, "status", "Bad Request", NULL);
         break;
+    case 401:
+        varlist = TMPL_add_var(varlist, "status", "Unauthorized", NULL);
+        break;
     case 403:
         varlist = TMPL_add_var(varlist, "status", "Forbidden", NULL);
         break;
@@ -221,7 +224,7 @@ void ipcam_http_response_success(IpcamHttpResponse *http_response, gboolean succ
     g_object_unref(generator);
     g_object_unref(builder);
 
-    g_object_set(http_response, "body", string, NULL);
+    g_object_set(http_response, "status", 200, "body", string, NULL);
     g_free((gpointer)string);
 }
 

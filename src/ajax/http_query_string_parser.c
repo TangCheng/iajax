@@ -76,7 +76,7 @@ GHashTable *ipcam_http_query_string_parser_get(IpcamHttpQueryStringParser *parse
 {
     g_return_val_if_fail(IPCAM_IS_HTTP_QUERY_STRING_PARSER(parser), NULL);
     int pos = 0;
-    gchar tmp[32] = {0};
+    gchar tmp[128] = {0};
     GList *list = NULL;
     gchar *key = NULL;
     gchar *value = NULL;
@@ -97,17 +97,25 @@ GHashTable *ipcam_http_query_string_parser_get(IpcamHttpQueryStringParser *parse
             tmp[pos] = '\0';
             value = g_strdup(tmp);
             pos = 0;
-
-            list = g_hash_table_lookup(priv->query_hash, key);
-            if (!list)
+            if (key)
             {
-                list = g_list_append(list, value);
-                g_hash_table_insert(priv->query_hash, key, list);
+                list = g_hash_table_lookup(priv->query_hash, key);
+                if (!list)
+                {
+                    list = g_list_append(list, value);
+                    g_hash_table_insert(priv->query_hash, g_strdup(key), list);
+                }
+                else
+                {
+                    list = g_list_append(list, value);
+                }
+                g_free(key);
+                key = NULL;
             }
             else
             {
-                g_free(key);
-                list = g_list_append(list, value);
+                g_free(value);
+                value = NULL;
             }
         }
         else if (*p == '=')

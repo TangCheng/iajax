@@ -18,6 +18,12 @@
 #include "http_handler/configuration/event_motion_handler.h"
 #include "http_handler/configuration/event_cover_handler.h"
 #include "http_handler/configuration/event_proc_handler.h"
+
+#include "http_handler/login/login_handler.h"
+#include "http_handler/login/logout_handler.h"
+
+#include "http_handler/upgrade/upgrade_handler.h"
+
 #include "iajax.h"
 #include "common.h"
 
@@ -75,7 +81,12 @@ static void ipcam_http_proc_init(IpcamHttpProc *self)
         IPCAM_HTTP_EVENT_OUTPUT_HANDLER_TYPE,
         IPCAM_HTTP_EVENT_MOTION_HANDLER_TYPE,
         IPCAM_HTTP_EVENT_COVER_HANDLER_TYPE,
-        IPCAM_HTTP_EVENT_PROC_HANDLER_TYPE
+        IPCAM_HTTP_EVENT_PROC_HANDLER_TYPE,
+
+        IPCAM_HTTP_LOGIN_HANDLER_TYPE,
+        IPCAM_HTTP_LOGOUT_HANDLER_TYPE,
+
+        IPCAM_HTTP_UPGRADE_HANDLER_TYPE,
     };
     gint i = 0;
 

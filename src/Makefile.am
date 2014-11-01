@@ -43,6 +43,11 @@ iajax_SOURCES = \
 	http_handler/configuration/event_motion_handler.c \
 	http_handler/configuration/event_cover_handler.c \
 	http_handler/configuration/event_proc_handler.c \
+	http_handler/login/login_handler.c \
+	http_handler/login/logout_handler.c \
+	http_handler/upgrade/upgrade_handler.c \
+	login/login_manager.c \
+	login/sha1.c \
 	iajax.c \
 	common.c \
 	sysutils.c \
