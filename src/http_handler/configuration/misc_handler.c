@@ -55,7 +55,7 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
             }
             g_free(key);
         }
-        else if (g_str_equal(name, "main_stream_url"))
+        else if (g_str_equal(name, "sub_stream_url"))
         {
             asprintf(&key, "misc:rtsp_auth", name);
             value = ipcam_iajax_get_configuration(iajax, key);
