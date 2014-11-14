@@ -111,12 +111,13 @@ gboolean sysutils_get_cpu_info(gchar **cpuinfo)
 {
     FILE *fp = NULL;
     gchar buf[64];
+    guint freq = 0;
     gboolean ret = FALSE;
     
-    fp = popen("cat /proc/cpuinfo | grep \'BogoMIPS\'  | awk -F: \'{print $2}\' | sed \'s/\\ //g\'", "r");
+    fp = popen("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq", "r");
     if (fp) {
-        fscanf(fp, "%s", buf);
-        g_strlcat(buf, "MHz", 64);
+        fscanf(fp, "%u", &freq);
+        g_snprintf(buf, 64, "%uMHz", freq / 1000);
         *cpuinfo = g_strdup(buf);
         ret = TRUE;
         pclose(fp);
