@@ -9,29 +9,58 @@
 
 G_DEFINE_TYPE(IpcamHttpNetworkHandler, ipcam_http_network_handler, IPCAM_HTTP_REQUEST_HANDLER_TYPE)
 
+static JsonNode *query_network_address(IpcamIAjax *iajax)
+{
+	const gchar *token = ipcam_base_app_get_config(IPCAM_BASE_APP(iajax), "token");
+	IpcamRequestMessage *req_msg;
+	IpcamMessage *resp_msg;
+    JsonBuilder *builder;
+	JsonNode *addr_node = NULL;
+	gboolean ret;
+
+	builder = json_builder_new();
+	json_builder_begin_object(builder);
+	json_builder_set_member_name(builder, "items");
+	json_builder_begin_array(builder);
+	json_builder_add_string_value(builder, "address");
+	json_builder_end_array(builder);
+	json_builder_end_object(builder);
+
+	req_msg = g_object_new(IPCAM_REQUEST_MESSAGE_TYPE,
+	                       "action", "get_network",
+	                       "body", json_builder_get_root(builder),
+	                       NULL);
+	ipcam_base_app_send_message(IPCAM_BASE_APP(iajax), IPCAM_MESSAGE(req_msg),
+	                            "iconfig", token, NULL, 5);
+	ret = ipcam_base_app_wait_response(IPCAM_BASE_APP(iajax),
+	                                   ipcam_request_message_get_id(req_msg),
+	                                   5000, &resp_msg);
+	if (ret)
+	{
+		JsonNode *resp_body;
+		JsonObject *items_obj;
+
+		g_object_get(G_OBJECT(resp_msg), "body", &resp_body, NULL);
+
+		items_obj = json_object_get_object_member(json_node_get_object(resp_body), "items");
+		addr_node = json_node_copy(json_object_get_member(items_obj, "address"));
+
+		g_object_unref(resp_msg);
+	}
+
+	g_object_unref(req_msg);
+	g_object_unref(builder);
+
+	return addr_node;
+}
+
 static void do_get_action_address(IpcamIAjax *iajax, JsonBuilder *builder)
 {
-    GVariant *value = NULL;
-    gchar *key = NULL;
-    const gchar *address_member[] = 
-    {
-        "ipaddr", "netmask", "gateway", "dns1", "dns2"
-    };
-    gint i = 0;
-    json_builder_set_member_name(builder, "address");
-    json_builder_begin_object(builder);
-    for (i = 0; i < ARRAY_SIZE(address_member); i++)
-    {
-        asprintf(&key, "network:address:%s", address_member[i]);
-        value = ipcam_iajax_get_configuration(iajax, key);
-        if (value)
-        {
-            add_value(builder, address_member[i], value);
-            g_variant_unref(value);
-        }
-        g_free(key);
-    }
-    json_builder_end_object(builder);
+	JsonNode *addr_node = query_network_address(iajax);
+	if (addr_node) {
+		json_builder_set_member_name(builder, "address");
+		json_builder_add_value(builder, addr_node);
+	}
 }
 
 static void do_get_action_pppoe(IpcamIAjax *iajax, JsonBuilder *builder)
