@@ -293,3 +293,13 @@ void sysutils_reboot(void)
 {
     system("reboot");
 }
+
+void sysutils_soft_reset(void)
+{
+    system("/apps/iconfig/soft-reset.sh");
+}
+
+void sysutils_hard_reset(void)
+{
+    system("/apps/iconfig/hard-reset.sh");
+}

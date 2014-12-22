@@ -34,9 +34,11 @@ START_HANDLER(post_system, HTTP_POST, "/api/1.0/system.json", http_request, http
                 }
                 else if (g_str_equal(action, "soft_reset"))
                 {
+                    sysutils_soft_reset();
                 }
                 else if (g_str_equal(action, "hard_reset"))
                 {
+                    sysutils_hard_reset();
                 }
             }
         }
