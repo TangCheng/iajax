@@ -203,8 +203,7 @@ static gpointer ajax_worker(gpointer data)
             g_object_get(ajax, "app", &data->iajax, NULL);
             data->socket = worker;
 
-            GThread *thread =g_thread_new("request-proc", request_proc, data);
-            g_thread_unref(thread);
+            request_proc(data);
         }
         else
         {
