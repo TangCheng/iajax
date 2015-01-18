@@ -65,10 +65,10 @@ gint sysutils_get_upgrade_status(void)
 
     if (0 == access("/var/cache/firmware/firmware-lock", F_OK))
     {
-        fp = popen("cat /var/cache/firmware/firmware-lock", "r");
+        fp = fopen("/var/cache/firmware/firmware-lock", "r");
         if (fp) {
             fscanf(fp, "%d", &ret);
-            pclose(fp);
+            fclose(fp);
         }
     }
 
@@ -114,13 +114,13 @@ gboolean sysutils_get_cpu_info(gchar **cpuinfo)
     guint freq = 0;
     gboolean ret = FALSE;
     
-    fp = popen("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq", "r");
+    fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq", "r");
     if (fp) {
         fscanf(fp, "%u", &freq);
         g_snprintf(buf, 64, "%uMHz", freq / 1000);
         *cpuinfo = g_strdup(buf);
         ret = TRUE;
-        pclose(fp);
+        fclose(fp);
     }
     
     return ret;
@@ -130,7 +130,7 @@ guint sysutils_get_cpu_usage(void)
 {
     guint usage = 0;
 
-    FILE *fp = popen("cat /proc/stat", "r");
+    FILE *fp = fopen("/proc/stat", "r");
     if (fp == NULL) {
         perror("error get cpu usage");
         return usage;
@@ -166,7 +166,7 @@ guint sysutils_get_cpu_usage(void)
         }
     }
 
-    pclose(fp);
+    fclose(fp);
 
     return usage;
 }
@@ -207,15 +207,15 @@ gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved,
 
     if (band_width && sent && recved && tx_usage && rx_usage)
     {
-        fp = popen("cat /sys/class/net/eth0/speed", "r");
+        fp = fopen("/sys/class/net/eth0/speed", "r");
         if (fp) {
             fscanf(fp, "%u", &bw);
             g_snprintf(buf, 64, "%uMbps", bw);
             *band_width = g_strdup(buf);
-            pclose(fp);
+            fclose(fp);
         }
 
-        fp = popen("cat /sys/class/net/eth0/statistics/tx_bytes", "r");
+        fp = fopen("/sys/class/net/eth0/statistics/tx_bytes", "r");
         if (fp) {
             fscanf(fp, "%llu", &tx);
             if (tx > 1024 * 1024 * 1024LL)
@@ -236,10 +236,10 @@ gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved,
             }
             
             *sent = g_strdup(buf);
-            pclose(fp);
+            fclose(fp);
         }
 
-        fp = popen("cat /sys/class/net/eth0/statistics/rx_bytes", "r");
+        fp = fopen("/sys/class/net/eth0/statistics/rx_bytes", "r");
         if (fp) {
             fscanf(fp, "%llu", &rx);
             if (rx > 1024LL * 1024 * 1024)
@@ -259,7 +259,7 @@ gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved,
                 g_snprintf(buf, 64, "%lluBytes", rx);
             }
             *recved = g_strdup(buf);
-            pclose(fp);
+            fclose(fp);
         }
 
         time_t now;
