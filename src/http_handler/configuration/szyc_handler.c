@@ -42,7 +42,7 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
     json_generator_set_root(generator, res_node);
     json_generator_set_pretty(generator, TRUE);
 
-    gchar *result = json_generator_to_data(generator, NULL);;
+    gchar *result = json_generator_to_data(generator, NULL);
 
     json_node_free(res_node);
     g_object_unref(G_OBJECT(builder));

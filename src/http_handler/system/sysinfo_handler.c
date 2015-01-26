@@ -58,8 +58,8 @@ void get_eth_info(JsonBuilder *builder)
     gchar *band_width = NULL;
     gchar *tx = NULL;
     gchar *rx = NULL;
-    guint *tx_speed = NULL;
-    guint *rx_speed = NULL;
+    guint tx_speed;
+    guint rx_speed;
     
     if (sysutils_get_net_info(&band_width, &tx, &rx, &tx_speed, &rx_speed))
     {
