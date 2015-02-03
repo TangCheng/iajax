@@ -98,8 +98,8 @@ START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_r
     gchar *body = NULL;
     gchar *token = NULL;
     gchar *role = NULL;
-    gchar *username = NULL;
-    gchar *password = NULL;
+    const gchar *username = NULL;
+    const gchar *password = NULL;
     gboolean logon = FALSE;
     
     g_object_get(post_login, "app", &iajax, NULL);
@@ -140,8 +140,6 @@ START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_r
         json_builder_set_member_name(builder, "role");
         json_builder_add_string_value(builder, role);
         json_builder_end_object(builder);
-        g_free(token);
-        g_free(role);
 
         JsonGenerator *generator = json_generator_new();
         JsonNode *res_node = json_builder_get_root(builder);
@@ -152,7 +150,8 @@ START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_r
         gchar *result = json_generator_to_data(generator, NULL);
         g_object_set(http_response, "status", 200, "body", result, NULL);
         g_free(result);
-                
+
+        json_node_free(res_node);
         g_object_unref(G_OBJECT(generator));
         g_object_unref(G_OBJECT(builder));
     }
@@ -161,6 +160,8 @@ START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_r
         g_object_set(http_response, "status", 200, NULL);
         ipcam_http_response_success(http_response, logon);
     }
+    g_free(token);
+    g_free(role);
     
     ret = TRUE;
 }

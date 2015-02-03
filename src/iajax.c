@@ -227,8 +227,12 @@ static const GVariant *ipcam_iajax_get_property(IpcamIAjax *iajax, const gchar *
 	GVariant *value;
 
 	g_mutex_lock(&priv->property_mutex);
-	value = g_hash_table_lookup(priv->cached_property_hash, key);
-    g_variant_ref(value);
+    value = g_hash_table_lookup(priv->cached_property_hash, key);
+    if (value) {
+        g_variant_ref(value);
+    } else {
+        g_warning("property \"%s\" not found.\n", key);
+    }
 	g_mutex_unlock(&priv->property_mutex);
 
 	return value;
@@ -808,13 +812,14 @@ void ipcam_iajax_set_configuration(IpcamIAjax *iajax, IpcamRequestMessage *msg,
 GList *ipcam_iajax_get_users(IpcamIAjax *iajax)
 {
     g_return_val_if_fail(IPCAM_IS_IAJAX(iajax), NULL);
-    GList *users = NULL;
+    GList *users = NULL, *ret = NULL;
     IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(iajax);
     g_mutex_lock(&priv->users_mutex);
-    users = g_list_copy_deep(g_hash_table_get_keys(priv->cached_users_hash),
-                             (GCopyFunc)g_strdup, NULL);
+    users = g_hash_table_get_keys(priv->cached_users_hash),
+    ret = g_list_copy_deep(users, (GCopyFunc)g_strdup, NULL);
+    g_list_free(users);
     g_mutex_unlock(&priv->users_mutex);
-    return users;
+    return ret;
 }
 
 gchar *ipcam_iajax_get_user_pwd(IpcamIAjax *iajax, const gchar *name)

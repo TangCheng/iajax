@@ -3,6 +3,7 @@
 #include "ajax/http_response.h"
 #include "ajax/http_query_string_parser.h"
 #include "iajax.h"
+#include "sysutils.h"
 
 G_DEFINE_TYPE(IpcamHttpSystemHandler, ipcam_http_system_handler, IPCAM_HTTP_REQUEST_HANDLER_TYPE)
 

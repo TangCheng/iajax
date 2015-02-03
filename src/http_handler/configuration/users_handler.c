@@ -17,7 +17,7 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
     GList *user;
     GList *users = ipcam_iajax_get_users(iajax);
 
-    users = g_list_sort(users, g_strcmp0);
+    users = g_list_sort(users, (GCompareFunc)g_strcmp0);
     builder = json_builder_new();
     json_builder_begin_object(builder);
     json_builder_set_member_name(builder, "items");
@@ -42,6 +42,7 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
                     gchar *role = ipcam_iajax_get_user_role(iajax, user->data);
                     json_builder_set_member_name(builder, "role");
                     json_builder_add_string_value(builder, role);
+                    g_free(role);
                 }
                 else
                 {
@@ -51,7 +52,7 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
         }
         json_builder_end_object(builder);
     }
-    g_list_free(users);
+    g_list_free_full(users, g_free);
     json_builder_end_array(builder);
     json_builder_end_object(builder);
 

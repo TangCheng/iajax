@@ -26,8 +26,10 @@ gboolean sysutils_get_uptime(gchar **uptime);
 gboolean sysutils_get_cpu_info(gchar **cpuinfo);
 guint sysutils_get_cpu_usage(void);
 gboolean sysutils_get_memory_info(gchar **total, gchar **used_mem, gchar **free_mem, guint *usage);
-gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved, guint *tx_usage, guint *rx_usage);
+gboolean sysutils_get_net_info(const gchar *netif, gchar **band_width, gchar **sent, gchar **recved, guint *tx_usage, guint *rx_usage);
 void sysutils_reboot(void);
+void sysutils_soft_reset(void);
+void sysutils_hard_reset(void);
 
 #endif // _SYSUTILS_H_
 

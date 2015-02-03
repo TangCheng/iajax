@@ -28,61 +28,55 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
         gchar *key = NULL;
         if (g_str_equal(name, "main_stream_url"))
         {
-            asprintf(&key, "misc:rtsp_auth", name);
+            key = "misc:rtsp_auth";
             value = ipcam_iajax_get_configuration(iajax, key);
             if (value)
             {
                 add_value(builder, "rtsp_auth", value);
                 g_variant_unref(value);
             }
-            g_free(key);
             
-            asprintf(&key, "network:port:rtsp", name);
+            key = "network:port:rtsp";
             value = ipcam_iajax_get_configuration(iajax, key);
             if (value)
             {
                 add_value(builder, "port", value);
                 g_variant_unref(value);
             }
-            g_free(key);
 
-            asprintf(&key, "video:main_profile:stream_path", name);
+            key = "video:main_profile:stream_path";
             value = ipcam_iajax_get_configuration(iajax, key);
             if (value)
             {
                 add_value(builder, "stream_path", value);
                 g_variant_unref(value);
             }
-            g_free(key);
         }
         else if (g_str_equal(name, "sub_stream_url"))
         {
-            asprintf(&key, "misc:rtsp_auth", name);
+            key = "misc:rtsp_auth";
             value = ipcam_iajax_get_configuration(iajax, key);
             if (value)
             {
                 add_value(builder, "rtsp_auth", value);
                 g_variant_unref(value);
             }
-            g_free(key);
             
-            asprintf(&key, "network:port:rtsp", name);
+            key = "network:port:rtsp";
             value = ipcam_iajax_get_configuration(iajax, key);
             if (value)
             {
                 add_value(builder, "port", value);
                 g_variant_unref(value);
             }
-            g_free(key);
 
-            asprintf(&key, "video:sub_profile:stream_path", name);
+            key = "video:sub_profile:stream_path";
             value = ipcam_iajax_get_configuration(iajax, key);
             if (value)
             {
                 add_value(builder, "stream_path", value);
                 g_variant_unref(value);
             }
-            g_free(key);
         }
         else
         { 

@@ -40,8 +40,6 @@ static gchar *do_get_action(IpcamIAjax *iajax)
 START_HANDLER(get_upgrade, HTTP_GET, "/api/1.0/upgrade.json", http_request, http_response, socket)
 {
     IpcamIAjax *iajax;
-    IpcamHttpQueryStringParser *parser;
-    gboolean success = FALSE;
     
     g_object_get(get_upgrade, "app", &iajax, NULL);
 

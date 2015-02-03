@@ -55,13 +55,14 @@ void get_mem_info(JsonBuilder *builder)
 
 void get_eth_info(JsonBuilder *builder)
 {
+    const gchar *netif = "eth0";
     gchar *band_width = NULL;
     gchar *tx = NULL;
     gchar *rx = NULL;
     guint tx_speed;
     guint rx_speed;
     
-    if (sysutils_get_net_info(&band_width, &tx, &rx, &tx_speed, &rx_speed))
+    if (sysutils_get_net_info(netif, &band_width, &tx, &rx, &tx_speed, &rx_speed))
     {
         json_builder_set_member_name(builder, "net");
         json_builder_begin_object(builder);
@@ -87,7 +88,6 @@ static gchar *do_get_action(IpcamIAjax *iajax)
     JsonBuilder *builder;
     JsonNode *res_node = NULL;
     JsonGenerator *generator;
-    gint status = 0;
     
     builder = json_builder_new();
     generator = json_generator_new();
@@ -128,8 +128,6 @@ static gchar *do_get_action(IpcamIAjax *iajax)
 START_HANDLER(get_sysinfo, HTTP_GET, "/api/1.0/sysinfo.json", http_request, http_response, socket)
 {
     IpcamIAjax *iajax;
-    IpcamHttpQueryStringParser *parser;
-    gboolean success = FALSE;
     
     g_object_get(get_sysinfo, "app", &iajax, NULL);
 

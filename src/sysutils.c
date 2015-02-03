@@ -193,9 +193,10 @@ gboolean sysutils_get_memory_info(gchar **total, gchar **used_mem, gchar **free_
     return ret;
 }
 
-gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved, guint *tx_usage, guint *rx_usage)
+gboolean sysutils_get_net_info(const gchar *netif, gchar **band_width, gchar **sent, gchar **recved, guint *tx_usage, guint *rx_usage)
 {
     gchar buf[64];
+    gchar *path;
     gboolean ret = FALSE;
     FILE *fp;
     static guint64 old_tx = 0;
@@ -207,59 +208,71 @@ gboolean sysutils_get_net_info(gchar **band_width, gchar **sent, gchar **recved,
 
     if (band_width && sent && recved && tx_usage && rx_usage)
     {
-        fp = fopen("/sys/class/net/eth0/speed", "r");
-        if (fp) {
-            fscanf(fp, "%u", &bw);
-            g_snprintf(buf, 64, "%uMbps", bw);
-            *band_width = g_strdup(buf);
-            fclose(fp);
+        path = g_strdup_printf("/sys/class/net/%s/speed", netif);
+        if (path) {
+            fp = fopen(path, "r");
+            if (fp) {
+                fscanf(fp, "%u", &bw);
+                g_snprintf(buf, 64, "%uMbps", bw);
+                *band_width = g_strdup(buf);
+                fclose(fp);
+            }
+            g_free(path);
         }
 
-        fp = fopen("/sys/class/net/eth0/statistics/tx_bytes", "r");
-        if (fp) {
-            fscanf(fp, "%llu", &tx);
-            if (tx > 1024 * 1024 * 1024LL)
-            {
-                g_snprintf(buf, 64, "%.01fGB", tx / 1024 / 1024 / 1024.0);
+        path = g_strdup_printf("/sys/class/net/%s/statistics/tx_bytes", netif);
+        if (path) {
+            fp = fopen(path, "r");
+            if (fp) {
+                fscanf(fp, "%llu", &tx);
+                if (tx > 1024 * 1024 * 1024LL)
+                {
+                    g_snprintf(buf, 64, "%.01fGB", tx / 1024 / 1024 / 1024.0);
+                }
+                else if (tx > 1024 * 1024LL)
+                {
+                    g_snprintf(buf, 64, "%.01fMB", tx / 1024 / 1024.0);
+                }
+                else if (tx > 1024LL)
+                {
+                    g_snprintf(buf, 64, "%.01fKB", tx / 1024.0);
+                }
+                else
+                {
+                    g_snprintf(buf, 64, "%lluBytes", tx);
+                }
+
+                *sent = g_strdup(buf);
+                fclose(fp);
             }
-            else if (tx > 1024 * 1024LL)
-            {
-                g_snprintf(buf, 64, "%.01fMB", tx / 1024 / 1024.0);
-            }
-            else if (tx > 1024LL)
-            {
-                g_snprintf(buf, 64, "%.01fKB", tx / 1024.0);
-            }
-            else
-            {
-                g_snprintf(buf, 64, "%lluBytes", tx);
-            }
-            
-            *sent = g_strdup(buf);
-            fclose(fp);
+            g_free(path);
         }
 
-        fp = fopen("/sys/class/net/eth0/statistics/rx_bytes", "r");
-        if (fp) {
-            fscanf(fp, "%llu", &rx);
-            if (rx > 1024LL * 1024 * 1024)
-            {
-                g_snprintf(buf, 64, "%.01fGB", rx / 1024 / 1024 / 1024.0);
+        path = g_strdup_printf("/sys/class/net/%s/statistics/rx_bytes", netif);
+        if (path) {
+            fp = fopen(path, "r");
+            if (fp) {
+                fscanf(fp, "%llu", &rx);
+                if (rx > 1024LL * 1024 * 1024)
+                {
+                    g_snprintf(buf, 64, "%.01fGB", rx / 1024 / 1024 / 1024.0);
+                }
+                else if (rx > 1024LL * 1024)
+                {
+                    g_snprintf(buf, 64, "%.01fMB", rx / 1024 / 1024.0);
+                }
+                else if (rx > 1024LL)
+                {
+                    g_snprintf(buf, 64, "%.01fKB", rx / 1024.0);
+                }
+                else
+                {
+                    g_snprintf(buf, 64, "%lluBytes", rx);
+                }
+                *recved = g_strdup(buf);
+                fclose(fp);
             }
-            else if (rx > 1024LL * 1024)
-            {
-                g_snprintf(buf, 64, "%.01fMB", rx / 1024 / 1024.0);
-            }
-            else if (rx > 1024LL)
-            {
-                g_snprintf(buf, 64, "%.01fKB", rx / 1024.0);
-            }
-            else
-            {
-                g_snprintf(buf, 64, "%lluBytes", rx);
-            }
-            *recved = g_strdup(buf);
-            fclose(fp);
+            g_free(path);
         }
 
         time_t now;
