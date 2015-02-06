@@ -94,7 +94,6 @@ END_HANDLER
 
 START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_response, socket)
 {
-    IpcamIAjax *iajax;
     gchar *body = NULL;
     gchar *token = NULL;
     gchar *role = NULL;
@@ -102,7 +101,6 @@ START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_r
     const gchar *password = NULL;
     gboolean logon = FALSE;
     
-    g_object_get(post_login, "app", &iajax, NULL);
     g_object_get(http_request, "body", &body, NULL);
     if (body)
     {
@@ -111,6 +109,9 @@ START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_r
         JsonObject *object;
         if (json_parser_load_from_data(parser, body, -1, NULL))
         {
+            IpcamIAjax *iajax;
+            g_object_get(post_login, "app", &iajax, NULL);
+
             root_node = json_parser_get_root(parser);
             object = json_node_get_object(root_node);
             if (json_object_has_member(object, "token"))
@@ -125,6 +126,7 @@ START_HANDLER(post_login, HTTP_POST, "/api/1.0/login.json", http_request, http_r
                 password = json_object_get_string_member(object, "password");
                 logon = ipcam_iajax_login(iajax, username, password, &token, &role);
             }
+            g_clear_object(&iajax);
         }
         g_object_unref(parser);
         g_free(body);

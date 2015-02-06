@@ -60,8 +60,7 @@ START_HANDLER(get_base_info, HTTP_GET, "/api/1.0/base_info.json", http_request, 
     GList *item_list = NULL;
     GHashTable *query_hash = NULL;
     gboolean success = FALSE;
-    
-    g_object_get(get_base_info, "app", &iajax, NULL);
+
     g_object_get(http_request, "query-string", &query_string, NULL);
     if (query_string) 
     {
@@ -72,7 +71,9 @@ START_HANDLER(get_base_info, HTTP_GET, "/api/1.0/base_info.json", http_request, 
             item_list = g_hash_table_lookup(query_hash, "items[]");
             if (item_list)
             {
+                g_object_get(get_base_info, "app", &iajax, NULL);
                 gchar *result = do_get_action(iajax, item_list);
+                g_clear_object(&iajax);
                 g_object_set(http_response, "body", result, NULL);
                 g_free(result);
 

@@ -9,11 +9,8 @@ G_DEFINE_TYPE(IpcamHttpLogoutHandler, ipcam_http_logout_handler, IPCAM_HTTP_REQU
 
 START_HANDLER(get_logout, HTTP_GET, "/api/1.0/logout.json", http_request, http_response, socket)
 {
-    IpcamIAjax *iajax;
     gchar *token = NULL;
     
-    g_object_get(get_logout, "app", &iajax, NULL);
-
     gchar *cookie = ipcam_http_request_get_header_value(http_request, "Set-Cookie");
     if (cookie)
     {
@@ -29,8 +26,12 @@ START_HANDLER(get_logout, HTTP_GET, "/api/1.0/logout.json", http_request, http_r
                     token[i] = token_start[6 + i];
                     i++;
                 } while (!(token_start[6 + i] == '\0' || token_start[6 + i] == ';'));
-                    
+
+                IpcamIAjax *iajax;
+                g_object_get(get_logout, "app", &iajax, NULL);
+
                 ipcam_iajax_logout(iajax, token);
+                g_clear_object(&iajax);
                 g_free(token);
             }
         }

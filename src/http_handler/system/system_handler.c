@@ -9,11 +9,9 @@ G_DEFINE_TYPE(IpcamHttpSystemHandler, ipcam_http_system_handler, IPCAM_HTTP_REQU
 
 START_HANDLER(post_system, HTTP_POST, "/api/1.0/system.json", http_request, http_response, socket)
 {
-    IpcamIAjax *iajax;
     gchar *body = NULL;
     gchar *action = NULL;
     
-    g_object_get(post_system, "app", &iajax, NULL);
     g_object_get(http_request, "body", &body, NULL);
     if (body)
     {

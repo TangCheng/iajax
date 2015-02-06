@@ -95,8 +95,7 @@ START_HANDLER(get_video, HTTP_GET, "/api/1.0/video.json", http_request, http_res
     GList *item_list = NULL;
     GHashTable *query_hash = NULL;
     gboolean success = FALSE;
-    
-    g_object_get(get_video, "app", &iajax, NULL);
+
     g_object_get(http_request, "query-string", &query_string, NULL);
     if (query_string) 
     {
@@ -107,7 +106,9 @@ START_HANDLER(get_video, HTTP_GET, "/api/1.0/video.json", http_request, http_res
             item_list = g_hash_table_lookup(query_hash, "items[]");
             if (item_list)
             {
+                g_object_get(get_video, "app", &iajax, NULL);
                 gchar *result = do_get_action(iajax, item_list);
+                g_clear_object(&iajax);
                 g_object_set(http_response, "body", result, NULL);
                 g_free(result);
 

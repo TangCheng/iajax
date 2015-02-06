@@ -97,30 +97,39 @@ static void connection_value_destroy_func(gpointer value)
     g_free(conn);
 }
 
+static void ipcam_iajax_dispose(GObject *object)
+{
+    IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(IPCAM_IAJAX(object));
+
+    if (priv->ajax) {
+        g_object_run_dispose(G_OBJECT(priv->ajax));
+        g_clear_object(&priv->ajax);
+    }
+    if (priv->login_manager) {
+        g_object_run_dispose(G_OBJECT(priv->login_manager));
+        g_clear_object(&priv->login_manager);
+    }
+    G_OBJECT_CLASS(ipcam_iajax_parent_class)->dispose(object);
+}
+
 static void ipcam_iajax_finalize(GObject *object)
 {
     IpcamIAjaxPrivate *priv = ipcam_iajax_get_instance_private(IPCAM_IAJAX(object));
     g_mutex_lock(&priv->connection_mutex);
-    g_hash_table_remove_all(priv->connection_hash);
-    g_object_unref(priv->connection_hash);
+    g_hash_table_unref(priv->connection_hash);
     g_mutex_unlock(&priv->connection_mutex);
     g_mutex_clear(&priv->connection_mutex);
     
     g_mutex_lock(&priv->users_mutex);
-    g_hash_table_remove_all(priv->cached_users_hash);
-    g_object_unref(priv->cached_users_hash);
+    g_hash_table_unref(priv->cached_users_hash);
     g_mutex_unlock(&priv->users_mutex);
     g_mutex_clear(&priv->users_mutex);
 
     g_mutex_lock(&priv->property_mutex);
-    g_hash_table_remove_all(priv->cached_property_hash);
-    g_object_unref(priv->cached_property_hash);
+    g_hash_table_unref(priv->cached_property_hash);
     g_mutex_unlock(&priv->property_mutex);
     g_mutex_clear(&priv->property_mutex);
-    
-    g_clear_object(&priv->ajax);
-    g_clear_object(&priv->login_manager);
-    
+
     G_OBJECT_CLASS(ipcam_iajax_parent_class)->finalize(object);
 }
 
@@ -148,6 +157,7 @@ static void ipcam_iajax_init(IpcamIAjax *self)
 static void ipcam_iajax_class_init(IpcamIAjaxClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->dispose = &ipcam_iajax_dispose;
     object_class->finalize = &ipcam_iajax_finalize;
     
     IpcamBaseServiceClass *base_service_class = IPCAM_BASE_SERVICE_CLASS(klass);
@@ -300,7 +310,7 @@ static void property_object_proc(JsonObject *object,
     case JSON_NODE_OBJECT:
         if (priv->property_path_size < PROPERTY_PATH_MAX_DEPTH)
         {   
-            priv->property_path[priv->property_path_size] = member_name;
+            priv->property_path[priv->property_path_size] = (gchar *)member_name;
             priv->property_path_size++;
             json_object_foreach_member(json_node_get_object(member_node), property_object_proc, iajax);
             priv->property_path_size--;
@@ -357,7 +367,7 @@ static void ipcam_iajax_update_cached_property(IpcamIAjax *iajax, const gchar *n
     if (g_strstr_len(name, -1, "users"))
     {
         JsonArray *items_ary = json_object_get_array_member(json_node_get_object(body), "items");
-        priv->property_path[priv->property_path_size] = name;
+        priv->property_path[priv->property_path_size] = (gchar *)name;
         priv->property_path_size++;
         json_array_foreach_element(items_ary, property_array_proc, iajax);
         priv->property_path_size--;
@@ -367,7 +377,7 @@ static void ipcam_iajax_update_cached_property(IpcamIAjax *iajax, const gchar *n
     {
         JsonObject *items_obj = json_object_get_object_member(json_node_get_object(body), "items");
     
-        priv->property_path[priv->property_path_size] = name;
+        priv->property_path[priv->property_path_size] = (gchar *)name;
         priv->property_path_size++;
         json_object_foreach_member(items_obj, property_object_proc, iajax);
         priv->property_path_size--;
@@ -782,7 +792,7 @@ void ipcam_iajax_property_handler(IpcamIAjax *iajax, const gchar *name, JsonNode
 GVariant *ipcam_iajax_get_configuration(IpcamIAjax *iajax, const gchar *name)
 {
     g_return_val_if_fail(IPCAM_IS_IAJAX(iajax), NULL);
-    return ipcam_iajax_get_property(iajax, name);
+    return (GVariant *)ipcam_iajax_get_property(iajax, (gchar *)name);
 }
 
 void ipcam_iajax_set_configuration(IpcamIAjax *iajax, IpcamRequestMessage *msg,

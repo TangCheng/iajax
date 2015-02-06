@@ -1,4 +1,5 @@
 token: iajax_token
+netif: eth0
 connect:
   iconfig: tcp://127.0.0.1:65400
 subscribe:

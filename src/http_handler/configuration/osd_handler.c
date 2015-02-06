@@ -100,13 +100,11 @@ static gchar* do_get_action(IpcamIAjax *iajax, GHashTable *item_hash)
 
 START_HANDLER(get_osd, HTTP_GET, "/api/1.0/osd.json", http_request, http_response, socket)
 {
-    IpcamIAjax *iajax;
     IpcamHttpQueryStringParser *parser;
     gchar *query_string = NULL;
     GHashTable *query_hash = NULL;
     gboolean success = FALSE;
     
-    g_object_get(get_osd, "app", &iajax, NULL);
     g_object_get(http_request, "query-string", &query_string, NULL);
     if (query_string) 
     {
@@ -114,7 +112,10 @@ START_HANDLER(get_osd, HTTP_GET, "/api/1.0/osd.json", http_request, http_respons
         query_hash = ipcam_http_query_string_parser_get(parser, query_string);
         if (query_hash)
         {
+            IpcamIAjax *iajax;
+            g_object_get(get_osd, "app", &iajax, NULL);
             gchar *result = do_get_action(iajax, query_hash);
+            g_clear_object(&iajax);
             g_object_set(http_response, "body", result, NULL);
             g_free(result);
 

@@ -44,6 +44,7 @@ START_HANDLER(get_upgrade, HTTP_GET, "/api/1.0/upgrade.json", http_request, http
     g_object_get(get_upgrade, "app", &iajax, NULL);
 
     gchar *result = do_get_action(iajax);
+    g_clear_object(&iajax);
     g_object_set(http_response, "body", result, NULL);
     g_free(result);
 

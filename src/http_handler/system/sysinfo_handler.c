@@ -53,9 +53,8 @@ void get_mem_info(JsonBuilder *builder)
     }
 }
 
-void get_eth_info(JsonBuilder *builder)
+void get_eth_info(JsonBuilder *builder, const char *netif)
 {
-    const gchar *netif = "eth0";
     gchar *band_width = NULL;
     gchar *tx = NULL;
     gchar *rx = NULL;
@@ -88,7 +87,8 @@ static gchar *do_get_action(IpcamIAjax *iajax)
     JsonBuilder *builder;
     JsonNode *res_node = NULL;
     JsonGenerator *generator;
-    
+    const gchar *netif = ipcam_base_app_get_config(IPCAM_BASE_APP(iajax), "netif");
+
     builder = json_builder_new();
     generator = json_generator_new();
 
@@ -106,7 +106,7 @@ static gchar *do_get_action(IpcamIAjax *iajax)
 
     get_cpu_info(builder);
     get_mem_info(builder);
-    get_eth_info(builder);
+    get_eth_info(builder, netif);
     
     json_builder_end_object(builder);
     json_builder_end_object(builder);
@@ -128,10 +128,12 @@ static gchar *do_get_action(IpcamIAjax *iajax)
 START_HANDLER(get_sysinfo, HTTP_GET, "/api/1.0/sysinfo.json", http_request, http_response, socket)
 {
     IpcamIAjax *iajax;
-    
+
     g_object_get(get_sysinfo, "app", &iajax, NULL);
 
     gchar *result = do_get_action(iajax);
+
+    g_clear_object(&iajax);
     g_object_set(http_response, "body", result, NULL);
     g_free(result);
 

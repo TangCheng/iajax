@@ -51,15 +51,16 @@ static void ipcam_http_proc_error(IpcamHttpProc *http_proc,
                                   IpcamHttpRequest *http_request,
                                   IpcamHttpResponse *http_response);
 
+static void request_handler_destroy_func(gpointer data)
+{
+    g_object_unref(G_OBJECT(data));
+}
+
 static void ipcam_http_proc_finalize(GObject *object)
 {
     IpcamHttpProcPrivate *priv = ipcam_http_proc_get_instance_private(IPCAM_HTTP_PROC(object));
-    GList *item = g_list_first(priv->request_handler_list);
-    for (; item; item = g_list_next(item))
-    {
-        g_clear_object(&item->data);
-    }
-    g_list_free(priv->request_handler_list);
+
+    g_list_free_full(priv->request_handler_list, request_handler_destroy_func);
     G_OBJECT_CLASS(ipcam_http_proc_parent_class)->finalize(object);
 }
 static void ipcam_http_proc_init(IpcamHttpProc *self)

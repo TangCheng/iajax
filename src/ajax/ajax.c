@@ -39,13 +39,25 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 static gpointer ajax_worker(gpointer data);
 static gpointer request_proc(gpointer data);
 
+static void ipcam_ajax_dispose(GObject *object)
+{
+    IpcamAjax *ajax = IPCAM_AJAX(object);
+    IpcamAjaxPrivate *priv = ipcam_ajax_get_instance_private(ajax);
+
+    if (priv->thread) {
+        priv->terminated = TRUE;
+        g_thread_join(priv->thread);
+        priv->thread = NULL;
+    }
+
+    G_OBJECT_CLASS(ipcam_ajax_parent_class)->dispose(object);
+}
+
 static void ipcam_ajax_finalize(GObject *object)
 {
     IpcamAjax *ajax = IPCAM_AJAX(object);
     IpcamAjaxPrivate *priv = ipcam_ajax_get_instance_private(ajax);
-    priv->terminated = TRUE;
-    g_thread_join(priv->thread);
-    g_clear_pointer(&priv->thread, g_thread_unref);
+
     g_free(priv->address);
     G_OBJECT_CLASS(ipcam_ajax_parent_class)->finalize(object);
 }
@@ -140,6 +152,7 @@ static void ipcam_ajax_class_init(IpcamAjaxClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->constructor = ipcam_ajax_constructor;
+    object_class->dispose = ipcam_ajax_dispose;
     object_class->finalize = &ipcam_ajax_finalize;
     object_class->get_property = &ipcam_ajax_get_property;
     object_class->set_property = &ipcam_ajax_set_property;
@@ -175,13 +188,13 @@ gboolean ipcam_ajax_get_terminated(IpcamAjax *ajax)
 }
 static gpointer ajax_worker(gpointer data)
 {
-    IpcamAjax *ajax = data;
+    IpcamAjax *ajax = IPCAM_AJAX(g_object_ref(G_OBJECT(data)));
     gchar *address;
     guint port;
     g_object_get(ajax, "address", &address, "port", &port, NULL);
     GInetAddress *inet_address = g_inet_address_new_from_string(address);
     GSocketAddress *socket_address = g_inet_socket_address_new(inet_address, port);
-    //g_free(inet_address);
+    g_clear_object(&inet_address);
     g_free(address);
     GSocket *server = g_socket_new(G_SOCKET_FAMILY_IPV4,
                                    G_SOCKET_TYPE_STREAM,
@@ -191,6 +204,7 @@ static gpointer ajax_worker(gpointer data)
     g_socket_set_blocking(server, TRUE);
 
     g_assert(g_socket_bind(server, socket_address, TRUE, NULL));
+    g_clear_object(&socket_address);
     g_assert(g_socket_listen(server, NULL));
 
     while (!ipcam_ajax_get_terminated(ajax))
@@ -213,7 +227,8 @@ static gpointer ajax_worker(gpointer data)
     }
 
     g_socket_close(server, NULL);
-    g_object_unref(server);
+    g_clear_object(&server);
+    g_clear_object(&ajax);
 
     return NULL;
 }
@@ -431,6 +446,7 @@ static gpointer request_proc(gpointer data)
         g_socket_close(worker, NULL);
         g_clear_object(&worker);
     }
+    g_clear_object(&app);
     g_free(buffer);
     g_free(params);
 

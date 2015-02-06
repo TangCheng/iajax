@@ -143,7 +143,7 @@ gboolean ipcam_login_manager_login(IpcamLoginManager *login_manager,
     pwd = ipcam_iajax_get_user_pwd(priv->iajax, username);
     if (pwd)
     {
-        sha1(sha1v, pwd, strlen(pwd));
+        sha1((unsigned char *)sha1v, (unsigned char *)pwd, strlen(pwd));
         memset(local_pwd, 0, SHA1_DIGEST_SIZE * 2 + 1);
         temp[2] = '\0';
         for (i = 0; i < SHA1_DIGEST_SIZE; i++)
@@ -161,8 +161,8 @@ gboolean ipcam_login_manager_login(IpcamLoginManager *login_manager,
             zuuid_destroy(&generator);
 
             value->username = g_strdup(username);
-            sha1(sha1v, value->uuid, strlen(value->uuid));
-            value->token = g_base64_encode(sha1v, SHA1_DIGEST_SIZE);
+            sha1((unsigned char *)sha1v, (unsigned char *)value->uuid, strlen(value->uuid));
+            value->token = g_base64_encode((unsigned char *)sha1v, SHA1_DIGEST_SIZE);
             value->timeout = 0;
             
             *role = ipcam_iajax_get_user_role(priv->iajax, value->username);

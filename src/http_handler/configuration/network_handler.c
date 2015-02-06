@@ -174,14 +174,12 @@ static gchar* do_get_action(IpcamIAjax *iajax, GList *item_list)
 
 START_HANDLER(get_network, HTTP_GET, "/api/1.0/network.json", http_request, http_response, socket)
 {
-    IpcamIAjax *iajax;
     IpcamHttpQueryStringParser *parser;
     gchar *query_string = NULL;
     GList *item_list = NULL;
     GHashTable *query_hash = NULL;
     gboolean success = FALSE;
-    
-    g_object_get(get_network, "app", &iajax, NULL);
+
     g_object_get(http_request, "query-string", &query_string, NULL);
     if (query_string) 
     {
@@ -192,7 +190,10 @@ START_HANDLER(get_network, HTTP_GET, "/api/1.0/network.json", http_request, http
             item_list = g_hash_table_lookup(query_hash, "items[]");
             if (item_list)
             {
+                IpcamIAjax *iajax;
+                g_object_get(get_network, "app", &iajax, NULL);
                 gchar *result = do_get_action(iajax, item_list);
+                g_clear_object(&iajax);
                 g_object_set(http_response, "body", result, NULL);
                 g_free(result);
 
