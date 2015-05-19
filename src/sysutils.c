@@ -46,7 +46,7 @@ gboolean sysutils_datetime_get_datetime(gchar **str_value)
 
     if (str_value) {
         t = time(NULL);
-        if (localtime_r(&t, &tm1)) {
+        if (gmtime_r(&t, &tm1)) {
             strftime(buf, sizeof(buf), "%F %T", &tm1);
             *str_value = g_strdup(buf);
 
