@@ -396,7 +396,7 @@ static gboolean check_send_response(IpcamHttpRequest *request, IpcamHttpResponse
 }
 static gpointer request_proc(gpointer data)
 {
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 4096
     IpcamAjaxWorkerData *params = data;
     IpcamIAjax *app = params->iajax;
     GSocket *worker = params->socket;
