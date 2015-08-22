@@ -464,7 +464,7 @@ static void ipcam_iajax_send_query_msg(IpcamIAjax *iajax, const gchar *action, J
 	                       "body", json_builder_get_root(builder),
 	                       NULL);
 	ipcam_base_app_send_message(IPCAM_BASE_APP(iajax), IPCAM_MESSAGE(req_msg),
-	                            "iconfig", token, get_message_handler, 20);
+	                            "iconfig", token, get_message_handler, 60);
     g_object_unref(req_msg);
 }
 
